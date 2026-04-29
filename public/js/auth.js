@@ -34,6 +34,8 @@ async function _ping(token) {
   } catch { return false; }
 }
 
+export function getToken() { return _token; }
+
 export function apiFetch(url, options = {}) {
   return fetch(url, {
     ...options,

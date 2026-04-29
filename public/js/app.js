@@ -1,5 +1,5 @@
 import { ref, computed, watch, onMounted, onBeforeUnmount, nextTick } from 'vue';
-import { initAuth, apiFetch } from './auth.js';
+import { initAuth, apiFetch, getToken } from './auth.js';
 import { createEditor } from './editor.js';
 
 marked.use({ gfm: true, breaks: false });
@@ -24,13 +24,20 @@ export function setup() {
   const toast           = ref({ show: false, type: 'success', message: '' });
   const editorContainer = ref(null);
 
-  let cmEditor   = null;
-  let toastTimer = null;
+  let cmEditor          = null;
+  let toastTimer        = null;
+  let evtSource         = null;
+  const scrollPositions = new Map();
+  const serverDown      = ref(false);
+  const showShortcuts   = ref(false);
 
   const isDirty      = computed(() => fileContent.value !== originalContent.value);
   const renderedHtml = computed(() => {
     if (!fileContent.value) return '';
-    try   { return marked.parse(fileContent.value); }
+    try {
+      return marked.parse(fileContent.value)
+        .replace(/<a\s/gi, '<a target="_blank" rel="noopener noreferrer" ');
+    }
     catch (e) { return `<pre class="text-danger">Parse error: ${e.message}</pre>`; }
   });
 
@@ -44,10 +51,11 @@ export function setup() {
   function initCM() {
     if (!editorContainer.value) return;
     cmEditor = createEditor(editorContainer.value, {
-      value:    fileContent.value,
-      dark:     isDark.value,
-      onChange: val => { fileContent.value = val; },
-      onSave:   () => saveFile(),
+      value:        fileContent.value,
+      dark:         isDark.value,
+      onChange:     val => { fileContent.value = val; },
+      onSave:       () => saveFile(),
+      onToggleEdit: () => { editMode.value = !editMode.value; },
     });
   }
 
@@ -56,8 +64,17 @@ export function setup() {
   // @after-enter fires once the entering element is fully in the DOM.
   // With mode="out-in" the leave animation finishes first, so the CM container
   // doesn't exist until this hook — nextTick() inside the watcher is too early.
+  function applyHighlighting() {
+    if (!window.hljs) return;
+    document.querySelectorAll('.markdown-body pre code').forEach(el => {
+      delete el.dataset.highlighted;
+      window.hljs.highlightElement(el);
+    });
+  }
+
   function onAfterEnter() {
     if (editMode.value && editorContainer.value && !cmEditor) initCM();
+    else if (!editMode.value) applyHighlighting();
   }
 
   watch(fileContent, val => {
@@ -85,6 +102,7 @@ export function setup() {
 
   async function openFile(file) {
     if (isDirty.value && !confirm('You have unsaved changes. Discard and open new file?')) return;
+    if (selectedFile.value) scrollPositions.set(selectedFile.value.path, window.scrollY);
     selectedFile.value   = file;
     loadingFile.value    = true;
     editMode.value       = false;
@@ -99,6 +117,8 @@ export function setup() {
       showToast('Failed to load file: ' + e.message, 'danger');
     } finally {
       loadingFile.value = false;
+      await nextTick();
+      window.scrollTo({ top: scrollPositions.get(file.path) ?? 0, behavior: 'instant' });
     }
   }
 
@@ -149,10 +169,10 @@ export function setup() {
     document.getElementById('hljs-dark').media  = isDark.value ? 'all'   : 'print';
   }
 
-  watch([renderedHtml, editMode], async ([, edit]) => {
-    if (edit) return;
+  watch(renderedHtml, async () => {
+    if (editMode.value) return;
     await nextTick();
-    document.querySelectorAll('.markdown-body pre code').forEach(el => hljs.highlightElement(el));
+    applyHighlighting();
   }, { flush: 'post' });
 
   function loadFromHash() {
@@ -174,8 +194,25 @@ export function setup() {
     if ((e.metaKey || e.ctrlKey) && e.key === 's') {
       e.preventDefault();
       if (editMode.value && selectedFile.value) saveFile();
+      return;
+    }
+    if ((e.metaKey || e.ctrlKey) && e.key === 'i') {
+      e.preventDefault();
+      if (selectedFile.value) editMode.value = !editMode.value;
+      return;
+    }
+    if (e.key === 'F1') {
+      e.preventDefault();
+      showShortcuts.value = !showShortcuts.value;
+      return;
     }
   };
+
+  function connectEvents() {
+    evtSource = new EventSource(`/api/events?token=${getToken()}`);
+    evtSource.onopen  = () => { serverDown.value = false; };
+    evtSource.onerror = () => { serverDown.value = true; evtSource.close(); };
+  }
 
   onMounted(async () => {
     const result = await initAuth();
@@ -184,19 +221,21 @@ export function setup() {
     if (!authReady.value) return;
     await loadTree();
     loadFromHash();
+    connectEvents();
     window.addEventListener('hashchange', loadFromHash);
     window.addEventListener('keydown', onGlobalKey);
   });
 
   onBeforeUnmount(() => {
+    evtSource?.close();
     window.removeEventListener('hashchange', loadFromHash);
     window.removeEventListener('keydown', onGlobalKey);
   });
 
   return {
     tree, rootPath, selectedFile, fileContent, editMode,
-    isDirty, isDark, sidebarOpen, loading, loadingFile, saving, toast,
+    isDirty, isDark, sidebarOpen, loading, loadingFile, saving, toast, serverDown,
     authReady, authError,
-    renderedHtml, editorContainer, loadTree, openFile, saveFile, toggleTheme, onAfterEnter, startResize,
+    renderedHtml, editorContainer, loadTree, openFile, saveFile, toggleTheme, onAfterEnter, startResize, showShortcuts,
   };
 }

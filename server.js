@@ -1,12 +1,21 @@
 #!/usr/bin/env node
 import http from 'http';
+import readline from 'readline';
+import { exec } from 'child_process';
 import './src/routes/auth.js';
 import './src/routes/tree.js';
 import './src/routes/files.js';
+import './src/routes/events.js';
 
 import { router } from './src/router.js';
 import { PORT, ROOT } from './src/config.js';
 import { SESSION_TOKEN } from './src/auth.js';
+
+function openBrowser(url) {
+  const cmd = process.platform === 'win32' ? 'start' :
+              process.platform === 'darwin' ? 'open' : 'xdg-open';
+  exec(`${cmd} "${url}"`);
+}
 
 const server = http.createServer((req, res) => router.handle(req, res));
 
@@ -19,6 +28,15 @@ server.on('error', err => {
 });
 
 server.listen(PORT, () => {
-  console.log(`\n  mdatlas running at http://localhost:${PORT}/?token=${SESSION_TOKEN}`);
+  const url = `http://localhost:${PORT}/?token=${SESSION_TOKEN}`;
+  console.log(`\n  mdatlas running at ${url}`);
   console.log(`  root: ${ROOT}\n`);
+
+  if (!process.stdin.isTTY) return;
+
+  const rl = readline.createInterface({ input: process.stdin, output: process.stdout });
+  rl.question('  Press ENTER to open in the browser… ', () => {
+    rl.close();
+    openBrowser(url);
+  });
 });
