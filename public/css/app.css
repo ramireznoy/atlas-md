@@ -1,0 +1,252 @@
+/* ── Sidebar ─────────────────────────────────────────────── */
+:root { --sidebar-width: 240px; }
+
+.sidebar-inner {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  overflow: hidden;
+  position: relative;
+}
+
+/* Thin scrollbar — visible only when content overflows */
+.sidebar-scroll {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: .5rem;
+  scrollbar-width: thin;
+  scrollbar-color: var(--tblr-border-color) transparent;
+}
+.sidebar-scroll::-webkit-scrollbar       { width: 4px; }
+.sidebar-scroll::-webkit-scrollbar-thumb { background: var(--tblr-border-color); border-radius: 2px; }
+.sidebar-scroll::-webkit-scrollbar-track { background: transparent; }
+
+/* Collapsible + resizable sidebar */
+.navbar-vertical {
+  width:     var(--sidebar-width) !important;
+  min-width: var(--sidebar-width) !important;
+  position:  relative;
+  transition: width .22s cubic-bezier(.4,0,.2,1),
+              min-width .22s cubic-bezier(.4,0,.2,1),
+              opacity .2s ease;
+  overflow: hidden !important;
+  scrollbar-width: none !important;
+}
+.navbar-vertical::-webkit-scrollbar { display: none !important; }
+
+.sidebar-hidden .navbar-vertical {
+  width: 0 !important;
+  min-width: 0 !important;
+  opacity: 0;
+  border-right: none !important;
+}
+
+/* Drag handle at the right edge of the sidebar */
+.sidebar-resizer {
+  position: absolute;
+  top: 0; right: 0;
+  width: 5px;
+  height: 100%;
+  cursor: col-resize;
+  z-index: 20;
+}
+.sidebar-resizer::after {
+  content: '';
+  position: absolute;
+  top: 0; left: 2px;
+  width: 1px; height: 100%;
+  background: transparent;
+  transition: background .15s;
+}
+.sidebar-resizer:hover::after { background: var(--tblr-primary); }
+
+/* Suppress transitions and text selection while dragging */
+.is-resizing { cursor: col-resize !important; user-select: none !important; }
+.is-resizing .navbar-vertical,
+.is-resizing .page-wrapper    { transition: none !important; }
+
+/* Sync page-wrapper offset with the CSS variable (Tabler uses margin-left only) */
+.page-wrapper {
+  margin-left: var(--sidebar-width) !important;
+  transition: margin-left .22s cubic-bezier(.4,0,.2,1);
+}
+.sidebar-hidden .page-wrapper {
+  padding-left: 0 !important;
+  margin-left:  0 !important;
+}
+
+/* ── Tree ────────────────────────────────────────────────── */
+.tree-item {
+  display: flex;
+  align-items: center;
+  gap: .5rem;
+  padding: .35rem .6rem;
+  border-radius: 5px;
+  font-size: .875rem;
+  cursor: pointer;
+  white-space: nowrap;
+  overflow: hidden;
+  color: var(--tblr-body-color);
+  user-select: none;
+}
+.tree-item:hover { background: var(--tblr-active-bg); }
+.tree-item.active { background: var(--tblr-primary); color: #fff; }
+.tree-item.active i { color: #fff !important; }
+.tree-item i { flex-shrink: 0; font-size: 1.2rem; }
+.tree-name { overflow: hidden; text-overflow: ellipsis; }
+.tree-children { padding-left: 1rem; }
+.tree-chevron {
+  margin-left: auto;
+  flex-shrink: 0;
+  font-size: .9rem;
+  opacity: .4;
+  transition: transform .15s;
+}
+.tree-chevron.open { transform: rotate(90deg); }
+
+/* ── Icon sizes ─────────────────────────────────────────── */
+.btn-icon .ti { font-size: 1.35rem; }
+.btn-sm .ti   { font-size: 1.35rem; }
+.sidebar-inner .ti-folder-root { font-size: 1rem; }
+
+/* ── Mode transition ─────────────────────────────────────── */
+.mode-fade-enter-active { transition: opacity .12s ease; }
+.mode-fade-leave-active { transition: opacity .08s ease; }
+.mode-fade-enter-from, .mode-fade-leave-to { opacity: 0; }
+
+/* ── Markdown ────────────────────────────────────────────── */
+.markdown-body {
+  font-size: 1rem;
+  line-height: 1.75;
+}
+.markdown-body h1,.markdown-body h2,.markdown-body h3,
+.markdown-body h4,.markdown-body h5,.markdown-body h6 {
+  margin: 1.5rem 0 .6rem;
+  font-weight: 600;
+  line-height: 1.3;
+}
+.markdown-body h1 { font-size: 2rem;   border-bottom: 1px solid var(--tblr-border-color); padding-bottom: .4rem; }
+.markdown-body h2 { font-size: 1.5rem; border-bottom: 1px solid var(--tblr-border-color); padding-bottom: .3rem; }
+.markdown-body h3 { font-size: 1.25rem; }
+.markdown-body p  { margin-bottom: 1rem; }
+.markdown-body a  { color: var(--tblr-primary); text-decoration: none; }
+.markdown-body a:hover { text-decoration: underline; }
+.markdown-body code {
+  font-size: .85em;
+  padding: .15em .35em;
+  border-radius: 4px;
+  background: var(--tblr-bg-surface-secondary);
+  font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
+}
+.markdown-body pre { border-radius: 6px; overflow-x: auto; margin: 1rem 0; }
+.markdown-body pre code { padding: 0; background: none; font-size: .875rem; border-radius: 0; }
+.markdown-body blockquote {
+  margin: 1rem 0;
+  padding: .5rem 1rem;
+  border-left: 4px solid var(--tblr-border-color);
+  color: var(--tblr-muted);
+}
+.markdown-body blockquote p { margin-bottom: 0; }
+.markdown-body table { width: 100%; border-collapse: collapse; margin: 1rem 0; display: block; overflow-x: auto; }
+.markdown-body th,.markdown-body td { padding: .5rem .75rem; border: 1px solid var(--tblr-border-color); }
+.markdown-body th { background: var(--tblr-bg-surface-secondary); font-weight: 600; }
+.markdown-body tr:nth-child(even) td { background: var(--tblr-bg-surface); }
+.markdown-body ul,.markdown-body ol { padding-left: 1.5rem; margin-bottom: 1rem; }
+.markdown-body li { margin-bottom: .3rem; }
+.markdown-body img { max-width: 100%; border-radius: 6px; }
+.markdown-body hr { border: 0; border-top: 1px solid var(--tblr-border-color); margin: 1.5rem 0; }
+.markdown-body input[type="checkbox"] { margin-right: .4rem; }
+
+/* ── CodeMirror editor ───────────────────────────────────── */
+.cm-container .CodeMirror {
+  height: auto;
+  min-height: calc(100vh - 13rem);
+  border: none;
+  border-radius: 8px;
+  font-size: .9rem;
+  line-height: 1.7;
+  padding: .75rem .5rem;
+}
+.cm-container .CodeMirror-scroll { min-height: calc(100vh - 13rem); }
+
+/* Light: slightly elevated surface so the editor reads as a distinct area */
+[data-bs-theme="light"] .cm-s-default.CodeMirror {
+  background: var(--tblr-bg-surface);
+  color: var(--tblr-body-color);
+}
+/* Dark: Dracula sets its own background (#282a36) which is naturally
+   lighter than Tabler's dark body, giving the same elevation effect */
+
+/* ── Markdown token colours ─────────────────────────────────
+   Both themes use the same visual roles; only the palette shifts.
+   cm-comment = inline code in CodeMirror's markdown mode.        */
+
+/* Light (default CM theme) */
+[data-bs-theme="light"] .cm-s-default .cm-header  { color: #1d4ed8; font-weight: 700; }
+[data-bs-theme="light"] .cm-s-default .cm-strong  { font-weight: 700; }
+[data-bs-theme="light"] .cm-s-default .cm-em      { font-style: italic; }
+[data-bs-theme="light"] .cm-s-default .cm-link    { color: #2563eb; }
+[data-bs-theme="light"] .cm-s-default .cm-url     { color: #6b7280; font-size: .875em; }
+[data-bs-theme="light"] .cm-s-default .cm-quote   { color: #6b7280; border-left: 3px solid #d1d5db; padding-left: 4px; }
+[data-bs-theme="light"] .cm-s-default .cm-hr      { color: #9ca3af; }
+[data-bs-theme="light"] .cm-s-default .cm-comment { color: #b45309; background: rgba(251,191,36,.15); border-radius: 2px; }
+
+/* Dark (Dracula), override Dracula's vivid palette to match light-mode weight */
+[data-bs-theme="dark"] .cm-s-dracula .cm-header   { color: #7aa2f7; font-weight: 700; }
+[data-bs-theme="dark"] .cm-s-dracula .cm-strong   { font-weight: 700; }
+[data-bs-theme="dark"] .cm-s-dracula .cm-em       { font-style: italic; }
+[data-bs-theme="dark"] .cm-s-dracula .cm-link     { color: #7aa2f7; }
+[data-bs-theme="dark"] .cm-s-dracula .cm-url      { color: #6e7681; font-size: .875em; }
+[data-bs-theme="dark"] .cm-s-dracula .cm-quote    { color: #8b949e; border-left: 3px solid #3d444d; padding-left: 4px; }
+[data-bs-theme="dark"] .cm-s-dracula .cm-hr       { color: #3d444d; }
+[data-bs-theme="dark"] .cm-s-dracula .cm-comment  { color: #e3b341; background: rgba(227,179,65,.12); border-radius: 2px; }
+
+/* ── Empty state ─────────────────────────────────────────── */
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: calc(100vh - 12rem);
+  gap: .75rem;
+}
+
+/* ── Toast ───────────────────────────────────────────────── */
+.toast-bar {
+  position: fixed;
+  bottom: 1.5rem;
+  right: 1.5rem;
+  z-index: 9999;
+  min-width: 240px;
+  animation: fadeUp .2s ease;
+}
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* ── Auth gate ───────────────────────────────────────────── */
+.auth-screen {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--tblr-body-bg);
+}
+.auth-card {
+  width: 100%;
+  max-width: 420px;
+  padding: 2.5rem;
+  text-align: center;
+}
+
+/* ── Dirty dot ───────────────────────────────────────────── */
+.dirty-dot {
+  display: inline-block;
+  width: 8px; height: 8px;
+  border-radius: 50%;
+  background: var(--tblr-warning);
+  margin-left: .4rem;
+  vertical-align: middle;
+}
